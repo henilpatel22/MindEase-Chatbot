@@ -45,7 +45,7 @@ export default function QuickReplies({ emotion = 'neutral', onSelect }) {
 
   return (
     <div style={containerStyle}>
-      <div style={{ display:'flex', gap:'0.4rem', overflowX:'auto', paddingBottom:'0.25rem' }}>
+      <div className="quick-replies-scroll" style={{ display:'flex', gap:'0.4rem', overflowX:'auto', paddingBottom:'0.25rem' }}>
         {replies.slice(0, 4).map((reply, i) => (
           <button
             key={i}

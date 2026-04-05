@@ -17,6 +17,7 @@ export default function SOSButton() {
       {/* Floating SOS button */}
       <button
         id="sos-btn"
+        className="sos-btn"
         onClick={() => setIsOpen(true)}
         style={sosBtnStyle}
         title="Emergency Support"

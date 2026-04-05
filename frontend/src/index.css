@@ -379,6 +379,23 @@ input, textarea { font-family: inherit; }
   .chat-messages-container {
     padding: 0.75rem !important;
   }
+  
+  .hide-mobile { display: none !important; }
+  
+  .sos-btn {
+    bottom: 6rem !important;
+    right: 1rem !important;
+    padding: 0.5rem 0.8rem !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .show-mobile { display: none !important; }
+}
+
+/* Hide scrollbar for quick replies block */
+.quick-replies-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Breathing circle animation ────────────────────────────────────────────── */
