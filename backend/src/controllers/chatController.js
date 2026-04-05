@@ -5,31 +5,60 @@
  */
 
 const axios = require('axios');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Conversation = require('../models/Conversation');
 const MoodLog = require('../models/MoodLog');
 
 const AI_SERVICE = process.env.AI_SERVICE_URL || 'http://localhost:5001';
 const getTodayKey = () => new Date().toISOString().split('T')[0];
 
-// ── Gemini AI Setup ───────────────────────────────────────────────────────────
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+// ── Gemini AI Setup (Lazy initialization) ─────────────────────────────────────
+let geminiModel = null;
 
-const SYSTEM_PROMPT = `You are MindEase, a warm, empathetic, and highly intelligent mental health companion AI. Your role is to support users through their emotional challenges with the wisdom of a seasoned therapist and the warmth of a trusted friend.
+function getGeminiModel() {
+  if (geminiModel) return geminiModel;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error('❌ GEMINI_API_KEY is not set in environment variables!');
+    return null;
+  }
+  try {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    geminiModel = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      generationConfig: { maxOutputTokens: 400, temperature: 0.90, topP: 0.95 },
+    });
+    console.log('✅ Gemini AI model initialized successfully');
+    return geminiModel;
+  } catch (err) {
+    console.error('❌ Failed to initialize Gemini:', err.message);
+    return null;
+  }
+}
 
-Your core principles:
-- ALWAYS respond in a deeply human and personalized way. Never give generic, copy-paste answers.
-- Read the user's actual message carefully and respond to the SPECIFIC things they said. Reference their exact words.
-- Mirror the emotional energy of the user — if they are distressed, be gentler and slower. If they are curious, be engaging and insightful.
-- Ask follow-up questions naturally, like a real person who is genuinely curious and listening.
-- Use a conversational, natural tone. Avoid sounding robotic, clinical, or scripted.
-- Share relevant psychological insights, coping techniques, and grounding exercises when appropriate — but weave them naturally into the conversation, don't just list them.
-- Keep responses focused and concise — typically 3-5 sentences for casual messages, longer for deeper emotional support.
-- NEVER repeat the same response twice. Every message deserves a unique, thoughtful reply.
-- Use relevant emojis sparingly to add warmth, but don't overdo it.
-- If the user seems to be in crisis, gently encourage them to reach out to a helpline and use the SOS button on screen.
-- You have access to the full conversation history, so maintain continuity and build on what has been discussed.`;
+// ── System Prompt ─────────────────────────────────────────────────────────────
+const SYSTEM_PROMPT = `You are MindEase, a warm, empathetic, and highly intelligent mental health companion AI. Your role is to support users through their emotional challenges.
+
+CRITICAL RULES — follow these ALWAYS:
+1. Read the user's EXACT message and respond to the SPECIFIC content they wrote. Never give a generic reply.
+2. NEVER repeat the same response twice. Each reply must be completely unique and tailored.
+3. If the user says "I am sad" — acknowledge THAT specifically. If they ask for a mindfulness tip — give a specific, useful tip. If they want to vent — listen and ask follow-up questions.
+4. Keep responses natural and conversational — 3-5 sentences typically. Longer only for deep emotional support.
+5. Weave in practical techniques (breathing, grounding, journaling) naturally — not as a bullet list.
+6. Use emojis sparingly for warmth. Never be robotic or clinical.
+7. Always end with an open question that invites the user to share more.
+8. If crisis is detected, gently direct them to use the SOS button visible on screen.`;
+
+// ── Keyword-based emotion classifier (fallback if Python service is down) ─────
+function detectEmotionFromText(text) {
+  const t = text.toLowerCase();
+  if (/\b(kill|suicide|end.it|hurt.myself|no.point|want.to.die|give.up.on.life)\b/.test(t)) return { emotion: 'neutral', score: 0.5, isCrisis: true };
+  if (/\b(happy|great|amazing|wonderful|excited|joy|fantastic|love|excellent|awesome)\b/.test(t)) return { emotion: 'happy', score: 0.75, isCrisis: false };
+  if (/\b(sad|unhappy|depressed|hopeless|lonely|crying|miss|grief|heartbreak|down|blue)\b/.test(t)) return { emotion: 'sad', score: 0.75, isCrisis: false };
+  if (/\b(angry|furious|rage|hate|frustrated|annoyed|irritated|mad|upset|pissed)\b/.test(t)) return { emotion: 'angry', score: 0.75, isCrisis: false };
+  if (/\b(anxious|anxiety|worried|nervous|panic|stress|overwhelm|scared|fear|dread)\b/.test(t)) return { emotion: 'anxious', score: 0.75, isCrisis: false };
+  return { emotion: 'neutral', score: 0.5, isCrisis: false };
+}
 
 // ── POST /api/chat/message ────────────────────────────────────────────────────
 const sendMessage = async (req, res, next) => {
@@ -48,13 +77,15 @@ const sendMessage = async (req, res, next) => {
 
     const userId = req.user._id;
 
-    // ── 1. Detect text emotion via Python service ─────────────────────────────
-    let emotionData = { emotion: 'neutral', score: 0.5, isCrisis: false };
+    // ── 1. Detect emotion (Python service with local fallback) ─────────────────
+    let emotionData = detectEmotionFromText(message); // Start with local fallback
     try {
-      const emotionRes = await axios.post(`${AI_SERVICE}/analyze`, { text: message }, { timeout: 8000 });
-      emotionData = emotionRes.data;
+      const emotionRes = await axios.post(`${AI_SERVICE}/analyze`, { text: message }, { timeout: 6000 });
+      if (emotionRes.data && emotionRes.data.emotion) {
+        emotionData = emotionRes.data;
+      }
     } catch {
-      console.warn('⚠️  AI emotion service unavailable — using neutral fallback');
+      console.warn('⚠️  Python emotion service unavailable — using local keyword detection');
     }
 
     // ── 2. Combine text + face emotion ────────────────────────────────────────
@@ -73,51 +104,79 @@ const sendMessage = async (req, res, next) => {
       }
     }
 
-    // ── 3. Generate response with Gemini AI ───────────────────────────────────
-    let botResponse = "I'm here for you. Could you tell me a little more about how you're feeling?";
+    // ── 3. Generate Gemini response ────────────────────────────────────────────
+    let botResponse = null;
 
-    try {
-      // Build chat history from context for Gemini
-      const chatHistory = context.flatMap(msg => {
-        if (msg.role === 'user') {
-          return [{ role: 'user', parts: [{ text: msg.content }] }];
-        } else if (msg.role === 'bot' || msg.role === 'model') {
-          return [{ role: 'model', parts: [{ text: msg.content }] }];
+    const model = getGeminiModel();
+    if (model) {
+      try {
+        // Build conversation history
+        const chatHistory = [];
+        for (const msg of context) {
+          if (msg.role === 'user') {
+            chatHistory.push({ role: 'user', parts: [{ text: msg.content }] });
+          } else if (msg.role === 'bot') {
+            chatHistory.push({ role: 'model', parts: [{ text: msg.content }] });
+          }
         }
-        return [];
-      });
 
-      // Emotion context to include in the prompt
-      const emotionContext = `[Context: User emotion detected as "${finalEmotion}" (${Math.round(finalScore * 100)}% confidence).${faceEmotion ? ` Face shows "${faceEmotion}".` : ''}${emotionData.isCrisis ? ' ⚠️ CRISIS KEYWORDS DETECTED — prioritize safety.' : ''}]`;
+        const emotionCtx = emotionData.isCrisis
+          ? `⚠️ CRISIS: User may be in danger. Prioritize their safety and encourage them to use the SOS button.`
+          : `User's emotion: ${finalEmotion} (${Math.round(finalScore * 100)}% confidence)${faceEmotion && faceEmotion !== finalEmotion ? `. Face shows: ${faceEmotion}.` : ''}`;
 
-      const userPromptWithEmotion = `${emotionContext}\n\nUser: ${message}`;
+        const fullPrompt = `${SYSTEM_PROMPT}\n\n${emotionCtx}\n\nUser's message: "${message.trim()}"`;
 
-      const chat = geminiModel.startChat({
-        history: [
-          { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-          { role: 'model', parts: [{ text: "Understood. I'm MindEase — a warm, empathetic AI companion ready to listen and support each person uniquely." }] },
-          ...chatHistory,
-        ],
-        generationConfig: {
-          maxOutputTokens: 400,
-          temperature: 0.85,
-          topP: 0.95,
-        },
-      });
+        const chat = model.startChat({ history: chatHistory });
+        const result = await chat.sendMessage(fullPrompt);
+        botResponse = result.response.text().trim();
 
-      const result = await chat.sendMessage(userPromptWithEmotion);
-      botResponse = result.response.text().trim();
-    } catch (geminiErr) {
-      console.error('Gemini error:', geminiErr.message);
-      // Graceful emotion-aware fallback
+        if (!botResponse || botResponse.length < 10) throw new Error('Empty response from Gemini');
+        console.log(`✅ Gemini responded (${botResponse.length} chars) for emotion: ${finalEmotion}`);
+
+      } catch (geminiErr) {
+        console.error('❌ Gemini API error:', geminiErr.message);
+        botResponse = null;
+      }
+    } else {
+      console.error('❌ Gemini model unavailable — check GEMINI_API_KEY env variable');
+    }
+
+    // ── Smart fallbacks (emotion-specific, never generic) ─────────────────────
+    if (!botResponse) {
       const fallbacks = {
-        sad: "I hear you, and I'm really glad you're talking to me. 💙 Whatever you're going through, you don't have to face it alone. Can you tell me more about what's been weighing on you?",
-        anxious: "That anxious feeling sounds really tough. 💜 Take a slow breath with me — in for 4 counts, out for 6. You're safe right now. What's been triggering this for you?",
-        angry: "I can feel the frustration in your words, and it's completely valid. 🔥 Let's work through this together. What happened that brought this on?",
-        happy: "It's wonderful to hear you're feeling good! 🌟 Tell me more — what's making you smile today?",
-        neutral: "Thanks for reaching out! I'm here and listening. 💙 What's on your mind today?",
+        sad: [
+          `I can hear that you're going through something heavy right now. 💙 You don't have to carry this alone. What's been weighing on you the most today?`,
+          `Sadness can feel so isolating, but reaching out like this is a really brave step. I'm right here with you. Can you tell me what's been happening?`,
+          `Thank you for trusting me with this. 💜 Whatever you're feeling, it's completely valid. What would feel most helpful right now — talking it through, or a calming technique?`,
+        ],
+        anxious: [
+          `That anxious feeling is so uncomfortable to sit with. 💜 Let's take this one breath at a time — in for 4, out for 6. What's been triggering this for you?`,
+          `Anxiety has a way of making everything feel urgent and overwhelming. You're not alone in this. 🌬️ What's your mind racing about most right now?`,
+          `I hear you — anxiety can be exhausting. Can you tell me what's been happening? Sometimes just saying it out loud helps lighten the weight of it.`,
+        ],
+        angry: [
+          `Your frustration makes complete sense — anger is telling you something important. 🔥 What happened that brought this on?`,
+          `I can feel the intensity of what you're sharing, and your feelings are completely valid. What's been the biggest trigger for you today?`,
+          `Anger is often protecting something deeper. I'm not here to rush you — what do you most need right now? To vent, to problem-solve, or just to be heard?`,
+        ],
+        happy: [
+          `It's genuinely wonderful to hear you're feeling good! 🌟 What's been making you smile today? I'd love to hear about it.`,
+          `That positive energy is beautiful — hold onto it! ✨ What's been the highlight of your day so far?`,
+          `Happy days are worth savoring. 😊 What's behind this good mood? Tell me more!`,
+        ],
+        neutral: [
+          `Thanks for checking in! I'm fully here and listening. 💙 What's been on your mind lately — is there something specific you'd like to explore or talk through?`,
+          `I'm glad you're here. Sometimes we don't need a big reason to reach out — just wanting to talk is enough. What would feel useful for you today?`,
+          `It's great to hear from you. 🌿 Whether you have something specific on your mind or just want to chat, I'm here. What's going on?`,
+        ],
       };
-      botResponse = fallbacks[finalEmotion] || fallbacks.neutral;
+
+      if (emotionData.isCrisis) {
+        botResponse = `🆘 I'm really concerned about you right now, and I want you to know that you matter deeply. Please tap the **SOS button** on your screen — it has direct helplines available 24/7.\n\n**iCall India:** 9152987821 | **Vandrevala Foundation:** 1860-2662-345 (24/7)\n\nYou don't have to face this alone. I'm right here with you. Can you tell me what's been happening?`;
+      } else {
+        const options = fallbacks[finalEmotion] || fallbacks.neutral;
+        botResponse = options[Math.floor(Math.random() * options.length)];
+      }
     }
 
     // ── 4. Find or create conversation ────────────────────────────────────────
@@ -133,7 +192,6 @@ const sendMessage = async (req, res, next) => {
       });
     }
 
-    // ── 5. Append messages ────────────────────────────────────────────────────
     const userMessage = {
       role: 'user',
       content: message.trim(),
@@ -146,7 +204,7 @@ const sendMessage = async (req, res, next) => {
     conversation.messages.push(userMessage, botMessage);
     await conversation.save();
 
-    // ── 6. Log mood ───────────────────────────────────────────────────────────
+    // ── 5. Log mood ───────────────────────────────────────────────────────────
     await MoodLog.create({
       userId,
       emotion: finalEmotion,
