@@ -60,8 +60,13 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  // Load history on mount
-  useEffect(() => { loadHistory() }, [])
+  // Load history and set default mobile state
+  useEffect(() => { 
+    loadHistory() 
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false)
+    }
+  }, [])
 
   // ── Update combined emotion whenever text or face changes ───────────────────
   useEffect(() => {
@@ -205,7 +210,7 @@ export default function ChatPage() {
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         {/* ── Sidebar (history) ─────────────────────────────────── */}
-        <aside style={{
+        <aside className="chat-sidebar" style={{
           ...sidebarStyle,
           width: sidebarOpen ? '240px' : '0',
           minWidth: sidebarOpen ? '240px' : '0',
@@ -265,7 +270,7 @@ export default function ChatPage() {
         </aside>
 
         {/* ── Main chat ────────────────────────────────────────── */}
-        <main style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0 }}>
+        <main className="chat-main" style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0, position:'relative' }}>
           {/* Chat header */}
           <div style={chatHeaderStyle}>
             <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
@@ -342,12 +347,13 @@ export default function ChatPage() {
 
         {/* ── Face Detector Panel (right) ──────────────────────── */}
         {cameraOpen && (
-          <aside style={{
+          <aside className="chat-camera-panel" style={{
             width: '220px', minWidth: '220px',
             borderLeft: '1px solid var(--glass-border)',
             display: 'flex', flexDirection: 'column',
             background: 'var(--surface)',
             overflow: 'hidden',
+            transition: 'all 0.3s ease',
           }}>
             <FaceDetector
               onEmotionDetected={handleFaceEmotion}

@@ -362,6 +362,23 @@ input, textarea { font-family: inherit; }
 @media (max-width: 768px) {
   .container { padding: 0 1rem; }
   :root { --bubble-max: 88%; }
+  
+  .chat-sidebar {
+    position: absolute;
+    height: 100%;
+    z-index: 50;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+  }
+  .chat-camera-panel {
+    position: absolute;
+    right: 0;
+    height: 100%;
+    z-index: 50;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+  }
+  .chat-messages-container {
+    padding: 0.75rem !important;
+  }
 }
 
 /* ── Breathing circle animation ────────────────────────────────────────────── */
