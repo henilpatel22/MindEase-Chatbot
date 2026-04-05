@@ -21,21 +21,50 @@
 - [System Architecture](#system-architecture)
 - [Deployment](#deployment)
 
+## 📸 Project Screenshots
+
+<details>
+<summary><b>1. Clean, Modern Chat Interface & History Sidebar</b></summary>
+<img src="./docs/assets/chat_layout.png" alt="Chat Layout" width="800">
+</details>
+
+<details>
+<summary><b>2. Context-Aware AI & Insightful Responses</b></summary>
+<img src="./docs/assets/context_awareness.png" alt="Context Awareness" width="800">
+</details>
+
+<details>
+<summary><b>3. Built-In Box Breathing Exercise</b></summary>
+<img src="./docs/assets/breathing_exercise.png" alt="Breathing Exercise" width="800">
+</details>
+
+<details>
+<summary><b>4. Emotion Analytics & Mood Dashboard</b></summary>
+<img src="./docs/assets/dashboard_metrics.png" alt="Dashboard Metrics" width="800">
+</details>
+
 ---
 
 ## ✨ Features
 
+### 🌟 Core Capabilities
 | Feature | Description |
 |---------|-------------|
-| 🔐 **Auth** | JWT-based signup/login with refresh tokens |
-| 💬 **Chat** | Real-time chat UI with conversation history |
-| 🎭 **Emotion Detection** | HuggingFace Transformer + keyword fallback |
-| 🤖 **AI Responses** | Rich rule-based responses with coping exercises |
-| 📊 **Dashboard** | Daily/weekly mood trend charts (Recharts) |
-| 🆘 **SOS Button** | Crisis detection + helpline modal |
-| 🌙 **Dark Mode** | Full dark mode with persistence |
-| 🎙️ **Voice Input** | Web Speech API (Chrome) |
-| 🛡️ **Admin Panel** | User management and activity overview |
+| 🔐 **Auth** | Secure JWT-based signup/login with refresh tokens |
+| 💬 **Chat** | Real-time chat UI with rich Markdown and conversation history |
+| 🤖 **AI Support** | Highly empathetic, rule-based response engine (No costly API keys needed) |
+| 📊 **Dashboard** | Visual analytics, daily/weekly mood tracking using Recharts |
+| 🆘 **SOS Alert** | Automated crisis detection + hotline overlay mechanism |
+
+### 🚀 Advanced Upgrades
+| Advanced Feature | Description |
+|---------|-------------|
+| 📷 **Face Detection** | Uses `face-api.js` local processing to capture real-time webcam emotions |
+| 🧠 **Fusion Engine** | Combines text sentiment (weight 60%) + facial expressions (40%) |
+| 🌬️ **Breathing Widget** | Auto-triggers animated Box Breathing logic when user expresses anxiety |
+| 🎙️ **Voice Synthesis** | In-browser Text-to-Speech allowing MindEase to read tips out loud |
+| 💬 **Session Context** | Remembers the last 5 messages to provide highly contextual responses |
+| 📉 **Mood Heuristics** | Sidebar heat strip and dynamic deterioration response mechanism |
 
 ---
 
