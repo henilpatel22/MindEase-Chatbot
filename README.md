@@ -317,3 +317,5 @@ MIT License — feel free to use, modify, and share.
 ---
 
 > ⚠️ **Disclaimer:** MindEase is not a substitute for professional mental health care. If you or someone you know is in crisis, please contact a helpline immediately.
+   
+ 
