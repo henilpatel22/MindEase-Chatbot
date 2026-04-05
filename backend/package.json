@@ -9,6 +9,7 @@
     "test": "echo \"No tests yet\" && exit 0"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.6.7",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
@@ -25,7 +26,11 @@
   "devDependencies": {
     "nodemon": "^3.0.3"
   },
-  "keywords": ["mental-health", "chatbot", "emotion-detection"],
+  "keywords": [
+    "mental-health",
+    "chatbot",
+    "emotion-detection"
+  ],
   "author": "MindEase Team",
   "license": "MIT"
 }
