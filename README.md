@@ -23,25 +23,20 @@
 
 ## 📸 Project Screenshots
 
-<details>
-<summary><b>1. Clean, Modern Chat Interface & History Sidebar</b></summary>
-<img src="./docs/assets/chat_layout.png" alt="Chat Layout" width="800">
-</details>
+### 1. MindEase Landing Page
+![Landing Page](./docs/assets/landing_page.png)
 
-<details>
-<summary><b>2. Context-Aware AI & Insightful Responses</b></summary>
-<img src="./docs/assets/context_awareness.png" alt="Context Awareness" width="800">
-</details>
+### 2. Clean, Modern Chat Interface & History Sidebar
+![Chat Layout](./docs/assets/chat_layout.png)
 
-<details>
-<summary><b>3. Built-In Box Breathing Exercise</b></summary>
-<img src="./docs/assets/breathing_exercise.png" alt="Breathing Exercise" width="800">
-</details>
+### 3. Context-Aware AI & Insightful Responses
+![Context Awareness](./docs/assets/context_awareness.png)
 
-<details>
-<summary><b>4. Emotion Analytics & Mood Dashboard</b></summary>
-<img src="./docs/assets/dashboard_metrics.png" alt="Dashboard Metrics" width="800">
-</details>
+### 4. Built-In Box Breathing Exercise
+![Breathing Exercise](./docs/assets/breathing_exercise.png)
+
+### 5. Emotion Analytics & Mood Dashboard
+![Dashboard Metrics](./docs/assets/dashboard_metrics.png)
 
 ---
 
