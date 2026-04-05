@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: mindease-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: FRONTEND_URL
+        value: 'https://mindease-chatbot.vercel.app' # UPDATE THIS IN RENDER DASHBOARD
+      - key: MONGODB_URI # Need to provide this via Render dashboard
+        sync: false
+      - key: JWT_SECRET # Need to provide this via Render dashboard
+        sync: false
+
+  - type: web
+    name: mindease-ai-service
+    env: python
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT app:app --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
